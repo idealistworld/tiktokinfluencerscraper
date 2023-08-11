@@ -1,0 +1,78 @@
+function getFollowerCount() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Data To Clean");
+  var linkTreeLinks = sheet.getRange("B2:B" + sheet.getLastRow()).getValues();
+
+  const gmailAddressFormat = /[\w\.-]+@gmail\.com/g;
+  const nameFormat = /<h1[^>]*>([^<]+)<\/h1>/;
+  const followerCountFormat = /<strong[^>]*data-e2e="followers-count"[^>]*>([\d\.]+)([kKmM]?)/i;
+  const likeCountFormat = /<strong[^>]*data-e2e="likes-count"[^>]*>([\d\.]+)([kKmM]?)/i;
+
+  var linkRowMap = new Map();
+  var data = [];
+
+  for (var x = 0; x < linkTreeLinks.length; x++) {
+    var linkTreeURL = linkTreeLinks[x][0];
+
+    if (!visitedLinks.has(linkTreeURL)) {
+      visitedLinks.add(linkTreeURL);
+      linkRowMap.set(linkTreeURL, x + 2); // Save the row number for the link
+    }
+
+    if (linkTreeURL.indexOf("out") == -1 && linkTreeURL.indexOf("google") == -1) {
+      try {
+        var response = UrlFetchApp.fetch(linkTreeURL);
+        var websiteHTMLCode = response.getContentText();
+      } catch (error) {
+        var websiteHTMLCode = "";
+      }
+
+      var gmailAddress = websiteHTMLCode.match(gmailAddressFormat)?.[0] || "";
+      var name = websiteHTMLCode.match(nameFormat)?.[1] || "";
+
+      var followerMatch = websiteHTMLCode.match(followerCountFormat);
+      var followerValue = parseFloat(followerMatch?.[1] || 0);
+      var followerMultiplier = followerMatch?.[2]?.toLowerCase() || "";
+
+      if (followerMultiplier === 'k') {
+        followerValue *= 1000;
+      } else if (followerMultiplier === 'm') {
+        followerValue *= 1000000;
+      }
+
+      var followers = followerValue.toString();
+
+      var likeMatch = websiteHTMLCode.match(likeCountFormat);
+      var likeValue = parseFloat(likeMatch?.[1] || 0);
+      var likeMultiplier = likeMatch?.[2]?.toLowerCase() || "";
+
+      if (likeMultiplier === 'k') {
+        likeValue *= 1000;
+      } else if (likeMultiplier === 'm') {
+        likeValue *= 1000000;
+      }
+
+      var likes = likeValue.toString();
+
+      if (name.indexOf("@") != -1) {
+        name = name.replace(/@/g, "");
+      }
+
+      var ratio = (likeValue / followerValue).toFixed(2);
+      data.push([linkTreeURL, gmailAddress, followers, likes, ratio]);
+
+      console.log("Processed: " + linkTreeURL);
+    }
+  }
+
+  // Sort data by likes-to-followers ratio in descending order
+  data.sort(function (a, b) {
+    return b[4] - a[4];
+  });
+
+  // Clear the existing data in the sheet
+  sheet.getRange(2, 2, sheet.getLastRow() - 1, 5).clearContent();
+
+  // Write sorted data back to the spreadsheet
+  sheet.getRange(2, 2, data.length, 5).setValues(data);
+}
