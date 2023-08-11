@@ -15,7 +15,6 @@ function getFollowerCount() {
     var linkTreeURL = linkTreeLinks[x][0];
 
 
-
     if (linkTreeURL.indexOf("out") == -1 && linkTreeURL.indexOf("google") == -1) {
       try {
         var response = UrlFetchApp.fetch(linkTreeURL);
