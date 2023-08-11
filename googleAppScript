@@ -14,10 +14,7 @@ function getFollowerCount() {
   for (var x = 0; x < linkTreeLinks.length; x++) {
     var linkTreeURL = linkTreeLinks[x][0];
 
-    if (!visitedLinks.has(linkTreeURL)) {
-      visitedLinks.add(linkTreeURL);
-      linkRowMap.set(linkTreeURL, x + 2); // Save the row number for the link
-    }
+
 
     if (linkTreeURL.indexOf("out") == -1 && linkTreeURL.indexOf("google") == -1) {
       try {
